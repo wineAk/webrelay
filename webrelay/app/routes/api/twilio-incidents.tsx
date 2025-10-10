@@ -11,7 +11,9 @@ export async function loader() {
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
-  if (request.method !== "POST") {
+  const method = request.method;
+  console.log("[twilio-incidents.tsx] - action - method:", method);
+  if (method !== "POST") {
     return new Response(JSON.stringify({ success: false, error: "Method Not Allowed." }), {
       status: 405,
       headers: { "Content-Type": "application/json" },
@@ -20,6 +22,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   // 環境変数GAS_TWILIO_INCIDENTS_URLを取得（https://script.google.com/macros/s/.../exec）
   const { GAS_TWILIO_INCIDENTS_URL } = context.cloudflare.env;
+  console.log("[twilio-incidents.tsx] - action - GAS_TWILIO_INCIDENTS_URL:", GAS_TWILIO_INCIDENTS_URL);
   if (!GAS_TWILIO_INCIDENTS_URL) {
     return new Response(JSON.stringify({ success: false, error: "Server misconfigured" }), {
       status: 500,
@@ -27,13 +30,14 @@ export async function action({ request, context }: Route.ActionArgs) {
     });
   }
 
+  // レスポンスを返す前にボディを読み取る
+  const payload = (await request.json()) as Payload;
+  console.log("[twilio-incidents.tsx] - action - payload:", payload);
+
   // 受信したらすぐに200返す
-  const clone = request.clone(); // 非同期転送用に複製
   context.cloudflare.ctx.waitUntil(
     (async () => {
       try {
-        const payload = (await clone.json()) as Payload;
-        console.log("[twilio-incidents.tsx] - action - payload:", payload);
         const res = await fetch(GAS_TWILIO_INCIDENTS_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -42,13 +46,13 @@ export async function action({ request, context }: Route.ActionArgs) {
         });
         console.log("[twilio-incidents.tsx] - action - res:", res);
       } catch (err) {
-        console.error("forward error:", err);
+        console.error("[twilio-incidents.tsx] - action - forward error:", err);
       }
     })()
   );
 
   return new Response(JSON.stringify({ success: true }), {
-    status: 200, // 204でも可
+    status: 200,
     headers: { "Content-Type": "application/json" },
   });
 }
