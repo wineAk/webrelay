@@ -17,7 +17,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       headers: { "Content-Type": "application/json" },
     });
   }
-  
+
   // 環境変数GAS_TWILIO_INCIDENTS_URLを取得（https://script.google.com/macros/s/.../exec）
   const { GAS_TWILIO_INCIDENTS_URL } = context.cloudflare.env;
   if (!GAS_TWILIO_INCIDENTS_URL) {
@@ -32,15 +32,15 @@ export async function action({ request, context }: Route.ActionArgs) {
   context.cloudflare.ctx.waitUntil(
     (async () => {
       try {
-        // 生ボディ＋元のContent-Typeを踏襲
-        const raw = await clone.arrayBuffer();
-        const ct = clone.headers.get("content-type") || "application/octet-stream";
-        await fetch(GAS_TWILIO_INCIDENTS_URL, {
+        const payload = (await clone.json()) as Payload;
+        console.log("[twilio-incidents.tsx] - action - payload:", payload);
+        const res = await fetch(GAS_TWILIO_INCIDENTS_URL, {
           method: "POST",
-          headers: { "Content-Type": ct },
-          body: raw,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
           redirect: "follow",
         });
+        console.log("[twilio-incidents.tsx] - action - res:", res);
       } catch (err) {
         console.error("forward error:", err);
       }
