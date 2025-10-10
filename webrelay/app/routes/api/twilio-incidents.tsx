@@ -11,6 +11,7 @@ export async function loader() {
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
+  // メソッドを取得
   const method = request.method;
   console.log("[twilio-incidents.tsx] - action - method:", method);
   if (method !== "POST") {
@@ -30,9 +31,9 @@ export async function action({ request, context }: Route.ActionArgs) {
     });
   }
 
-  // レスポンスを返す前にボディを読み取る
-  const payload = (await request.json()) as Payload;
-  console.log("[twilio-incidents.tsx] - action - payload:", payload);
+  // レスポンスを返す前にボディを読み取る（JSON文字列のまま）
+  const body = await request.text();
+  console.log("[twilio-incidents.tsx] - action - body:", body);
 
   // 受信したらすぐに200返す
   context.cloudflare.ctx.waitUntil(
@@ -41,7 +42,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         const res = await fetch(GAS_TWILIO_INCIDENTS_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body,
           redirect: "follow",
         });
         console.log("[twilio-incidents.tsx] - action - res:", res);
