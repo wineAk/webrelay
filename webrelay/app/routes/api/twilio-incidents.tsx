@@ -32,13 +32,13 @@ export async function action({ request, context }: Route.ActionArgs) {
   context.cloudflare.ctx.waitUntil(
     (async () => {
       try {
-        // bodyに送信されたデータを取得してGASに送信
-        const payload = (await clone.json()) as Payload;
-        const body = payload?.body ?? "";
+        // 生ボディ＋元のContent-Typeを踏襲
+        const raw = await clone.arrayBuffer();
+        const ct = clone.headers.get("content-type") || "application/octet-stream";
         await fetch(GAS_TWILIO_INCIDENTS_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ body }),
+          headers: { "Content-Type": ct },
+          body: raw,
           redirect: "follow",
         });
       } catch (err) {
